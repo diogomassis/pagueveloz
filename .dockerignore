@@ -1,0 +1,22 @@
+# Build artifacts
+bin/
+obj/
+
+# Docker-related files
+Dockerfile*
+.dockerignore
+
+# IDE and OS specific files
+.vs/
+.vscode/
+*.user
+*.suo
+.DS_Store
+
+# Version control
+.git/
+.gitignore
+
+# Environment and secrets
+*.local.settings.json
+appsettings.Development.json
