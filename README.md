@@ -141,6 +141,68 @@ The runtime image is built with a multi-stage Dockerfile.
 
 Only the published application output reaches the final image. SDK tooling, restore state, source code, and test artifacts are excluded from the runtime layer. That keeps the image smaller, reduces the attack surface, and makes local and CI builds more reproducible.
 
+## Repository Layout
+
+- `PagueVeloz.Domain`: entities, value objects, and business rules.
+- `PagueVeloz.Application`: use cases, orchestration, and abstractions.
+- `PagueVeloz.Infrastructure`: persistence, messaging, caching, and adapters.
+- `PagueVeloz.API`: HTTP endpoints, OpenAPI, and composition root.
+- `PagueVeloz.Tests`: unit and integration tests.
+
+## Runtime Dependencies
+
+The application starts with the following infrastructure:
+
+- PostgreSQL for durable transactional state
+- RabbitMQ for asynchronous event publication
+- Redis for caching and idempotency support
+
+The local compose environment wires those dependencies together so the service can be exercised end-to-end on a single machine.
+
+## Running the Service
+
+### Start Everything with Docker
+
+```bash
+docker compose up -d --build
+```
+
+Services exposed locally (compose):
+
+- HAProxy (load-balanced API): <http://localhost:9999>
+- Swagger UI (via HAProxy): <http://localhost:9999/swagger/index.html>
+- OpenAPI document (via HAProxy): <http://localhost:9999/openapi/v1.json>
+- PostgreSQL: localhost:5432
+- Redis: localhost:6379
+- RabbitMQ: localhost:5672
+- RabbitMQ Management: <http://localhost:15672>
+
+### Stop Everything
+
+```bash
+docker compose down
+```
+
+### Run the API Locally
+
+```bash
+dotnet run --project PagueVeloz.API
+```
+
+## Configuration Notes
+
+The application can run against PostgreSQL and RabbitMQ when the corresponding configuration is present. Without those dependencies, the infrastructure layer falls back to in-memory or degraded implementations where applicable.
+
+Operationally important settings include:
+
+- `ConnectionStrings:PagueVeloz`
+- `Messaging:RabbitMq:Host`
+- `Messaging:RabbitMq:Port`
+- `Messaging:RabbitMq:Username`
+- `Messaging:RabbitMq:Password`
+- `Cache:Redis:ConnectionString`
+
+
 ## Development Environment
 
 The project was developed in the following environment:
