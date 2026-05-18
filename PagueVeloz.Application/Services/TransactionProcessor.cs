@@ -11,6 +11,10 @@ public sealed class TransactionProcessor(IAccountRepository accountRepository, I
 {
     public async Task<ProcessTransactionResponse> ProcessAsync(ProcessTransactionRequest request, CancellationToken cancellationToken = default)
     {
+        var validationError = Validate(request);
+        if (validationError is not null)
+            return Failed(request.ReferenceId, validationError);
+        ProcessTransactionResponse? response = null;
         return null;
     }
 
