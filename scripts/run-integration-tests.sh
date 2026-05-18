@@ -11,23 +11,10 @@ COMPOSE_FILE="docker-compose.yml"
 # Services to start — default to postgres, redis, rabbitmq
 SERVICES="${SERVICES:-postgres redis rabbitmq}"
 
-echo "Bringing up services: $SERVICES"
-# Ensure previous containers/volumes don't leave RabbitMQ in a bad state (permission issues with .erlang.cookie)
-docker compose down --volumes --remove-orphans >/dev/null 2>&1 || true
-
-# Remove leftover named volumes that commonly cause permission issues (be conservative: only project-prefixed volumes)
-echo "Cleaning stale volumes: pagueveloz_postgres_data pagueveloz_rabbitmq_data pagueveloz_redis_data"
-docker volume rm pagueveloz_postgres_data pagueveloz_rabbitmq_data pagueveloz_redis_data >/dev/null 2>&1 || true
-
-docker compose up -d $SERVICES
-
-# Detect early rabbitmq .erlang.cookie permission error and retry once after cleaning volumes
-sleep 2
-if docker compose logs rabbitmq --no-color | grep -q "\.erlang.cookie: eacces"; then
-  echo "Detected .erlang.cookie permission error in RabbitMQ logs — retrying after removing rabbitmq_data volume"
-  docker compose down --volumes --remove-orphans >/dev/null 2>&1 || true
-  docker volume rm pagueveloz_rabbitmq_data >/dev/null 2>&1 || true
-  docker compose up -d $SERVICES
+MARKER_FILE="$ROOT_DIR/.docker_helpers_done"
+if [ ! -f "$MARKER_FILE" ]; then
+  echo "docker-helpers has not been run. Please run ./scripts/docker-helpers.sh (or with --build) before running this script." >&2
+  exit 3
 fi
 
 # Defaults for test connection strings / envs
@@ -133,5 +120,12 @@ TEST_EXIT_CODE=$?
 
 echo "Tearing down compose services..."
 docker compose down
+
+# Remove marker so user must explicitly run docker-helpers before next run
+MARKER_FILE="$ROOT_DIR/.docker_helpers_done"
+if [ -f "$MARKER_FILE" ]; then
+  rm -f "$MARKER_FILE"
+  echo "Removed marker $MARKER_FILE"
+fi
 
 exit $TEST_EXIT_CODE
