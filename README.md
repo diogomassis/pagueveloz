@@ -6,6 +6,12 @@ PagueVeloz is a compact financial transaction service built with Clean Architect
 
 The codebase is optimized for correctness first. The transactional path stays simple, the runtime dependencies remain small, and the system avoids patterns that would add ceremony without bringing real value at this stage.
 
+## Docker Strategy
+
+The runtime image is built with a multi-stage Dockerfile.
+
+Only the published application output reaches the final image. SDK tooling, restore state, source code, and test artifacts are excluded from the runtime layer. That keeps the image smaller, reduces the attack surface, and makes local and CI builds more reproducible.
+
 ## Development Environment
 
 The project was developed in the following environment:
