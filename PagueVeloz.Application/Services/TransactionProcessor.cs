@@ -77,7 +77,6 @@ public sealed class TransactionProcessor(IAccountRepository accountRepository, I
             }
         }, cancellationToken);
         return response ?? Failed(request.ReferenceId, "Transaction could not be processed.");
-        return null;
     }
 
     private static void ApplyOperation(ProcessTransactionRequest request, AccountDomain sourceAccount, AccountDomain? targetAccount)
