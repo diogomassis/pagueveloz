@@ -6,6 +6,37 @@ PagueVeloz is a compact financial transaction service built with Clean Architect
 
 The codebase is optimized for correctness first. The transactional path stays simple, the runtime dependencies remain small, and the system avoids patterns that would add ceremony without bringing real value at this stage.
 
+## What This Service Is
+
+This repository models a narrow transactional core:
+
+- account creation
+- balance-affecting transactions
+- idempotent processing
+- integration event publication
+- operational caching and resilience support
+
+That scope is intentional. It is easier to keep a small financial core correct than to stretch consistency guarantees across too many concerns at once.
+
+## What This Service Is Not
+
+This project is not trying to be:
+
+- a distributed ledger
+- an event-sourced financial platform
+- a read-heavy analytics system
+- a CQRS demo
+- a microservices platform with unnecessary decomposition
+
+Those choices were deferred on purpose. The current shape of the product does not justify the extra infrastructure and coordination costs.
+
+
+## Why CQRS Was Not Introduced
+
+CQRS is useful when read and write workloads diverge enough to justify separate models and scaling paths. That is not the case here.
+
+The system is small, write-centric, and correctness-sensitive. Introducing separate command and query models would add mapping layers, duplication, and more failure points without solving a real bottleneck. In a larger system, CQRS can be justified. Here, it would be premature complexity.
+
 ## Docker Strategy
 
 The runtime image is built with a multi-stage Dockerfile.
