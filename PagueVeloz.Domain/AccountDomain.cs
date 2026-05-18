@@ -13,4 +13,20 @@ public sealed class AccountDomain
     {
         ReservedBalance = ReservedBalance
     };
+
+    private static void EnsurePositiveAmount(long amount)
+    {
+        if (amount <= 0)
+        {
+            throw new ExceptionDomain("Amount must be greater than zero.");
+        }
+    }
+
+    private void EnsureActive()
+    {
+        if (Status != EnumAccountStatus.Active)
+        {
+            throw new ExceptionDomain("Account is not active.");
+        }
+    }
 }
