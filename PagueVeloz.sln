@@ -4,7 +4,13 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PagueVeloz.Domain", "PagueVeloz.Domain\PagueVeloz.Domain.csproj", "{F2C38E43-497B-4EC4-A563-F129633217EA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PagueVeloz.Application", "PagueVeloz.Application\PagueVeloz.Application.csproj", "{688CFB30-638A-4061-8696-C4FA2082F28A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PagueVeloz.Infrastructure", "PagueVeloz.Infrastructure\PagueVeloz.Infrastructure.csproj", "{4D08A27D-DE76-46A3-8D6C-23B7450CEA67}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PagueVeloz.API", "PagueVeloz.API\PagueVeloz.API.csproj", "{8B1ED426-A485-47E0-AE21-0033BAE20EF8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PagueVeloz.Tests", "PagueVeloz.Tests\PagueVeloz.Tests.csproj", "{18B13720-3F1B-4109-952C-28B7ED26BAD8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

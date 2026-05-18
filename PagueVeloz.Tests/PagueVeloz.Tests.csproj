@@ -22,4 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\PagueVeloz.Domain\PagueVeloz.Domain.csproj" />
     <ProjectReference Include="..\PagueVeloz.Application\PagueVeloz.Application.csproj" />
+    <ProjectReference Include="..\PagueVeloz.Infrastructure\PagueVeloz.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>

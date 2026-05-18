@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PagueVeloz.Application\PagueVeloz.Application.csproj" />
+    <ProjectReference Include="..\PagueVeloz.Infrastructure\PagueVeloz.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
