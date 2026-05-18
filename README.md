@@ -30,3 +30,31 @@ The project was developed in the following environment:
 - `POST /api/accounts`
 - `POST /api/transactions`
 
+## Practical Notes
+
+- The container image uses a multi-stage build so only the published binaries reach the runtime layer.
+- The local compose setup stays explicit to keep startup behavior predictable.
+- The repository is structured to keep business rules testable independently from infrastructure details.
+
+## Horizontal scalability
+
+This repository includes a reference HAProxy configuration (haproxy.cfg) and two API instances (pagueveloz-app-1 and pagueveloz-app-2) defined in docker-compose.yml. The configuration demonstrates basic HTTP request distribution and health checking using a round-robin algorithm and is intended for local development and staging.
+
+To run the load-balanced environment locally, build and start the required services:
+
+```bash
+docker compose up -d --build haproxy pagueveloz-app-1 pagueveloz-app-2 postgres rabbitmq redis
+```
+
+You can smoke-test the stack using:
+
+```bash
+curl -v http://localhost:9999/health
+```
+
+Operational notes:
+
+- The HAProxy setup in this repository is a pragmatic convenience for testing and does not aim to represent a production deployment. Production-grade horizontal scaling requires an orchestrator that provides service discovery, rolling updates, autoscaling, and lifecycle management.
+- For production environments we recommend Kubernetes: it provides built-in primitives for scaling, health checks, service routing, rolling upgrades, and integration with service meshes and observability tooling.
+- The persistence model is unchanged by horizontalizing the API layer: PostgreSQL remains the single source of truth and transactional semantics do not change.
+- If you need session affinity, path-based routing, or advanced routing logic, extend the HAProxy configuration rather than embedding routing decisions in the application.

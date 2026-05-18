@@ -42,6 +42,18 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+
+  haproxy:
+    image: haproxy:2.8-alpine
+    container_name: pagueveloz-haproxy
+    ports:
+      - "9999:9999"
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - pagueveloz-app-1
+      - pagueveloz-app-2
+
 volumes:
   postgres_data:
   redis_data:
