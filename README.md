@@ -202,6 +202,65 @@ Operationally important settings include:
 - `Messaging:RabbitMq:Password`
 - `Cache:Redis:ConnectionString`
 
+## Testing Strategy
+
+The test suite is intentionally split so each layer can be validated at the right cost.
+
+### Unit Tests Only
+
+```bash
+dotnet test PagueVeloz.sln --filter "Category!=Integration" -v minimal
+```
+
+This runs the fast tests that validate business logic and orchestration without requiring external services.
+
+### Integration Tests Only
+
+```bash
+chmod +x scripts/run-integration-tests.sh
+WAIT_TIMEOUT=180 ./scripts/run-integration-tests.sh
+```
+
+This script starts PostgreSQL, Redis, and RabbitMQ, waits for readiness, runs only integration tests, and then tears the environment down.
+
+Useful options:
+
+```bash
+SERVICES="postgres redis" WAIT_TIMEOUT=180 ./scripts/run-integration-tests.sh
+```
+
+Environment variables used by the script:
+
+- `TEST_CONNECTION_STRING`
+- `TEST_REDIS_CONNECTION`
+- `TEST_RABBIT_HOST`
+- `TEST_RABBIT_PORT`
+- `TEST_RABBIT_USER`
+- `TEST_RABBIT_PASS`
+
+### End-to-End Scenario
+
+```bash
+chmod +x scripts/run-e2e-tests.sh
+WAIT_TIMEOUT=180 ./scripts/run-e2e-tests.sh
+```
+
+This brings the full stack up, waits for HTTP and AMQP readiness, executes a realistic user journey, stores logs, and shuts everything down.
+
+### Build Only
+
+```bash
+dotnet build -v minimal
+```
+
+### Full Validation Sequence
+
+```bash
+dotnet test PagueVeloz.sln --filter "Category!=Integration" -v minimal
+WAIT_TIMEOUT=180 ./scripts/run-integration-tests.sh
+WAIT_TIMEOUT=180 ./scripts/run-e2e-tests.sh
+```
+
 
 ## Development Environment
 
