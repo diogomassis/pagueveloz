@@ -30,6 +30,55 @@ This project is not trying to be:
 
 Those choices were deferred on purpose. The current shape of the product does not justify the extra infrastructure and coordination costs.
 
+## Architecture
+
+The solution follows a layered boundary between domain, use cases, infrastructure, and transport.
+
+- The domain owns the business rules and invariants.
+- Application services orchestrate use cases and dependencies.
+- Infrastructure provides persistence, messaging, caching, and external integration.
+- The API is a thin HTTP composition root.
+
+This separation keeps framework concerns out of the business logic and makes the most important behavior testable without pulling in the whole stack.
+
+### High-Level Architecture
+
+```mermaid
+flowchart LR
+ Client[Client / Consumer] --> API[PagueVeloz.API]
+ API --> App[PagueVeloz.Application]
+ App --> Domain[PagueVeloz.Domain]
+ App --> Infra[PagueVeloz.Infrastructure]
+ Infra --> DB[(PostgreSQL)]
+ Infra --> MQ[(RabbitMQ)]
+ Infra --> Cache[(Redis)]
+```
+
+At a high level, the API is only the delivery layer. The application layer coordinates the use case. The domain enforces the rules. Infrastructure persists state, publishes events, and provides supporting capabilities such as caching and idempotency.
+
+### Request Flow
+
+```mermaid
+sequenceDiagram
+ participant C as Client
+ participant A as API
+ participant U as Application
+ participant D as Domain
+ participant P as PostgreSQL
+ participant R as RabbitMQ
+ participant X as Redis
+
+ C->>A: HTTP request
+ A->>U: Validate and dispatch use case
+ U->>D: Execute business rule
+ U->>X: Check or store idempotency state
+ U->>P: Persist transactional state
+ U->>R: Publish integration event
+ U-->>A: Use case result
+ A-->>C: HTTP response
+```
+
+In practice, the request path stays short on purpose. Validation and orchestration happen early, the domain makes the decision, and infrastructure commits the result before the API responds. That keeps the behavior easy to trace and reduces the chance of hidden side effects.
 
 ## Why CQRS Was Not Introduced
 
