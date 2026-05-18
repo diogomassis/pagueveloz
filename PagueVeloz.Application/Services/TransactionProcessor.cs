@@ -18,6 +18,36 @@ public sealed class TransactionProcessor(IAccountRepository accountRepository, I
         return null;
     }
 
+    private static void ApplyOperation(ProcessTransactionRequest request, AccountDomain sourceAccount, AccountDomain? targetAccount)
+    {
+        var operation = ParseOperation(request.Operation);
+        switch (operation)
+        {
+            case EnumOperationType.Credit:
+                sourceAccount.Credit(request.Amount);
+                return;
+            case EnumOperationType.Debit:
+                sourceAccount.Debit(request.Amount);
+                return;
+            case EnumOperationType.Reserve:
+                sourceAccount.Reserve(request.Amount);
+                return;
+            case EnumOperationType.Capture:
+                sourceAccount.Capture(request.Amount);
+                return;
+            case EnumOperationType.Reversal:
+                ApplyReversal(request, sourceAccount);
+                return;
+            case EnumOperationType.Transfer:
+                if (targetAccount is null)
+                    throw new ExceptionDomain("Target account is required for transfers.");
+                sourceAccount.Debit(request.Amount);
+                targetAccount.Credit(request.Amount);
+                return;
+            default:
+                throw new ExceptionDomain($"Operation '{request.Operation}' is not supported.");
+        }
+    }
 
     private static string? Validate(ProcessTransactionRequest request)
     {
