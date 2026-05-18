@@ -108,6 +108,32 @@ In practice, that means:
 
 It is a sensible trade-off for a transactional service with a tight scope and a limited delivery window.
 
+## System Trade-offs
+
+The current implementation intentionally prioritizes clarity and operational safety over scale-at-all-costs design.
+
+Key trade-offs:
+
+- PostgreSQL is the single system of record, which simplifies correctness but limits horizontal write scaling.
+- RabbitMQ carries integration events, but it is not used as the source of truth.
+- Redis is used for caching and idempotency support, not as durable business storage.
+- The service does not implement event sourcing or separate analytical read models.
+- The API favors straightforward behavior over a heavy abstraction layer.
+
+These are not accidental limitations. They come from choosing the smallest architecture that still supports the guarantees the system needs.
+
+## Domain and Infrastructure Boundaries
+
+The repository keeps business logic away from infrastructure dependencies wherever possible.
+
+That separation makes it easier to:
+
+- test domain behavior without standing up the entire environment
+- swap implementations when needed
+- keep persistence concerns out of the business model
+- reason about transactional correctness
+
+The same principle applies to idempotency, caching, and message publication: each concern exists, but each is isolated behind a narrow boundary.
 
 ## Docker Strategy
 
