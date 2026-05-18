@@ -4,23 +4,22 @@ using PagueVeloz.Application.Services;
 using PagueVeloz.Infrastructure;
 using PagueVeloz.Infrastructure.Persistence;
 
-var builder = WebApplication.CreateBuilder(args);
+var webBuilder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOpenApi();
-builder.Services.AddSwaggerGen();
-builder.Services.AddApplication();
-builder.Services.AddInfrastructure(builder.Configuration);
+webBuilder.Services.AddOpenApi();
+webBuilder.Services.AddSwaggerGen();
+webBuilder.Services.AddApplication();
+webBuilder.Services.AddInfrastructure(webBuilder.Configuration);
 
-var app = builder.Build();
+var app = webBuilder.Build();
 
-if (!string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("PagueVeloz")))
+if (!string.IsNullOrWhiteSpace(webBuilder.Configuration.GetConnectionString("PagueVeloz")))
 {
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<PagueVelozDbContext>();
     dbContext.Database.EnsureCreated();
 }
 
-// Always expose OpenAPI (Swagger) so API documentation is available in all environments
 app.MapOpenApi();
 app.UseSwagger();
 app.UseSwaggerUI(options =>
@@ -32,18 +31,21 @@ app.UseHttpsRedirection();
 
 var api = app.MapGroup("/api");
 
-api.MapPost("/accounts", async (CreateAccountRequest request, IAccountService accountService, CancellationToken cancellationToken) =>
-{
-    var response = await accountService.CreateAsync(request, cancellationToken);
-    return response.ErrorMessage is null ? Results.Ok(response) : Results.BadRequest(response);
-});
-
-api.MapPost("/transactions", async (ProcessTransactionRequest request, ITransactionProcessor transactionProcessor, CancellationToken cancellationToken) =>
-{
-    var response = await transactionProcessor.ProcessAsync(request, cancellationToken);
-    return response.ErrorMessage is null ? Results.Ok(response) : Results.BadRequest(response);
-});
+api.MapPost("/accounts", HandleCreateAccountAsync);
+api.MapPost("/transactions", HandleProcessTransactionAsync);
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
 app.Run();
+
+static async Task<IResult> HandleCreateAccountAsync(CreateAccountRequest request, IAccountService accountService, CancellationToken cancellationToken)
+{
+    var result = await accountService.CreateAsync(request, cancellationToken);
+    return result.ErrorMessage is null ? Results.Ok(result) : Results.BadRequest(result);
+}
+
+static async Task<IResult> HandleProcessTransactionAsync(ProcessTransactionRequest request, ITransactionProcessor processor, CancellationToken cancellationToken)
+{
+    var result = await processor.ProcessAsync(request, cancellationToken);
+    return result.ErrorMessage is null ? Results.Ok(result) : Results.BadRequest(result);
+}
