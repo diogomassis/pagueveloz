@@ -9,7 +9,7 @@ public sealed class AccountDomain
     public long CreditLimit { get; private set; }
     public EnumAccountStatus Status { get; private set; }
     public long AvailableBalance => Balance - ReservedBalance;
-    public AccountDomaincopy Clone() => new(ClientId, AccountId, Balance, CreditLimit, Status)
+    public AccountDomain Clone() => new(ClientId, AccountId, Balance, CreditLimit, Status)
     {
         ReservedBalance = ReservedBalance
     };
