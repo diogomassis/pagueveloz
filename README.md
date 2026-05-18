@@ -86,6 +86,29 @@ CQRS is useful when read and write workloads diverge enough to justify separate 
 
 The system is small, write-centric, and correctness-sensitive. Introducing separate command and query models would add mapping layers, duplication, and more failure points without solving a real bottleneck. In a larger system, CQRS can be justified. Here, it would be premature complexity.
 
+## Consistency Model
+
+The service prefers strong consistency for the transactional core because it handles money.
+
+PostgreSQL is the source of truth for state that must remain authoritative. The system would rather reject a request or delay completion than confirm a result that could later be contradicted by another actor.
+
+For this domain, that is the safer choice. A temporary availability loss is acceptable if the alternative is balance drift or duplicate state transitions.
+
+## CAP Trade-offs
+
+CAP is not just a slogan here; it is a practical design constraint.
+
+For the core writes, the system favors consistency while remaining partition-aware. If a dependency is unhealthy or a network path is impaired, the service should fail closed instead of inventing a transaction outcome.
+
+In practice, that means:
+
+- better correctness under failure
+- reduced tolerance for infrastructure partitions on write paths
+- lower theoretical availability in exchange for safer financial behavior
+
+It is a sensible trade-off for a transactional service with a tight scope and a limited delivery window.
+
+
 ## Docker Strategy
 
 The runtime image is built with a multi-stage Dockerfile.
