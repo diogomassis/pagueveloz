@@ -261,6 +261,25 @@ WAIT_TIMEOUT=180 ./scripts/run-integration-tests.sh
 WAIT_TIMEOUT=180 ./scripts/run-e2e-tests.sh
 ```
 
+## Behavior Under Failure
+
+The system is designed to fail gracefully and predictably, not to hide errors or degrade silently.
+
+### Fallback Infrastructure
+
+When PostgreSQL is not configured, the service falls back to in-memory account and idempotency stores. When RabbitMQ is not available, events are stored in memory instead of being lost. This means the application can start and function locally without requiring the full stack, though durability guarantees are weaker.
+
+### Concurrency Isolation
+
+Account operations are protected by per-account locks to prevent interleaved writes during concurrent requests. This ensures that balance checks and mutations remain consistent even under high concurrency. Lock acquisition respects cancellation tokens so the system can be shut down cleanly.
+
+### Resilient Message Publishing
+
+RabbitMQ connections are lazy and wrapped with exponential backoff and a circuit breaker. If the broker is unavailable, the API does not crash; instead, it fails the transaction after exhausting retries, allowing the caller to decide whether to retry or report the error. This prevents cascade failures when infrastructure dependencies are slow or degraded.
+
+### API Documentation
+
+The service exposes OpenAPI documentation and Swagger UI in all environments, including production. This is intentional: operational teams and debugging scripts can always hit `/swagger/index.html` or `/openapi/v1.json` without special configuration, which simplifies troubleshooting and integration testing.
 
 ## Development Environment
 
@@ -273,6 +292,13 @@ The project was developed in the following environment:
 - .NET SDK: 9.0.314
 - Docker: 29.3.0
 - Docker Compose: v5.1.0
+
+## Operational Behavior
+
+- PostgreSQL is the authority for transactional state.
+- RabbitMQ is used for event publication and asynchronous integration concerns.
+- Redis supports caching and idempotency, but it is not treated as durable business state.
+- If the consistency boundary is unavailable, the service should fail safely instead of returning optimistic answers.
 
 ## API Surface
 
