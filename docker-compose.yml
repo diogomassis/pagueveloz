@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pagueveloz-postgres
+    environment:
+      POSTGRES_DB: pagueveloz
+      POSTGRES_USER: pagueveloz
+      POSTGRES_PASSWORD: pagueveloz
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U pagueveloz -d pagueveloz" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
