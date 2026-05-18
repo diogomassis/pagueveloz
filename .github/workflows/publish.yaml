@@ -21,7 +21,7 @@ jobs:
           fetch-depth: 0
       - uses: go-semantic-release/action@v1
         env:
-          CR_PAT: ${{ secrets.CR_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-and-push-docker-image:
     name: 🐳 Build and Push Docker Image
