@@ -15,6 +15,68 @@ public sealed class TransactionProcessor(IAccountRepository accountRepository, I
         if (validationError is not null)
             return Failed(request.ReferenceId, validationError);
         ProcessTransactionResponse? response = null;
+        await unitOfWork.ExecuteAsync(async unitCancellationToken =>
+        {
+            var cached = await idempotencyStore.GetAsync(request.ReferenceId, unitCancellationToken);
+            if (cached is not null)
+            {
+                response = cached;
+                return;
+            }
+            await using var lockHandle = await accountLockProvider.AcquireAsync(GetLockKeys(request), unitCancellationToken);
+            var sourceAccount = await accountRepository.GetByIdAsync(request.AccountId, unitCancellationToken);
+            if (sourceAccount is null)
+            {
+                response = Failed(request.ReferenceId, "Source account not found.");
+                return;
+            }
+            AccountDomain? targetAccount = null;
+            if (IsTransfer(request.Operation))
+            {
+                if (string.IsNullOrWhiteSpace(request.TargetAccountId))
+                {
+                    response = Failed(request.ReferenceId, "Target account id is required for transfers.");
+                    return;
+                }
+                targetAccount = await accountRepository.GetByIdAsync(request.TargetAccountId, unitCancellationToken);
+                if (targetAccount is null)
+                {
+                    response = Failed(request.ReferenceId, "Target account not found.");
+                    return;
+                }
+            }
+            var workingSource = sourceAccount.Clone();
+            var workingTarget = targetAccount?.Clone();
+            try
+            {
+                ApplyOperation(request, workingSource, workingTarget);
+                var timestamp = DateTimeOffset.UtcNow;
+                response = Success(request.ReferenceId, workingSource, timestamp);
+                await eventPublisher.PublishAsync(
+                    new TransactionProcessedEvent(
+                        response.TransactionId,
+                        request.Operation,
+                        request.AccountId,
+                        request.TargetAccountId,
+                        request.Amount,
+                        response.Status,
+                        timestamp),
+                    unitCancellationToken);
+                await accountRepository.SaveAsync(workingSource, unitCancellationToken);
+                if (workingTarget is not null)
+                    await accountRepository.SaveAsync(workingTarget, unitCancellationToken);
+                await idempotencyStore.SaveAsync(request.ReferenceId, response, unitCancellationToken);
+            }
+            catch (ExceptionDomain exception)
+            {
+                response = Failed(request.ReferenceId, exception.Message);
+            }
+            catch (Exception exception)
+            {
+                response = Failed(request.ReferenceId, exception.Message);
+            }
+        }, cancellationToken);
+        return response ?? Failed(request.ReferenceId, "Transaction could not be processed.");
         return null;
     }
 
@@ -47,6 +109,62 @@ public sealed class TransactionProcessor(IAccountRepository accountRepository, I
             default:
                 throw new ExceptionDomain($"Operation '{request.Operation}' is not supported.");
         }
+    }
+
+    private static void ApplyReversal(ProcessTransactionRequest request, AccountDomain account)
+    {
+        var originalOperation = GetMetadataValue(request.Metadata, "original_operation");
+        if (string.IsNullOrWhiteSpace(originalOperation))
+            throw new ExceptionDomain("Reversal requires metadata.original_operation.");
+        switch (originalOperation.Trim().ToLowerInvariant())
+        {
+            case "credit":
+                account.Debit(request.Amount);
+                return;
+            case "debit":
+                account.Credit(request.Amount);
+                return;
+            case "reserve":
+                account.ReleaseReservation(request.Amount);
+                return;
+            case "capture":
+                account.Credit(request.Amount);
+                account.Reserve(request.Amount);
+                return;
+            default:
+                throw new ExceptionDomain($"Reversal of '{originalOperation}' is not supported yet.");
+        }
+    }
+
+    private static string? GetMetadataValue(JsonElement? metadata, string propertyName)
+    {
+        if (metadata is not { ValueKind: JsonValueKind.Object })
+            return null;
+        if (!metadata.Value.TryGetProperty(propertyName, out var property))
+            return null;
+        return property.ValueKind == JsonValueKind.String ? property.GetString() : property.ToString();
+    }
+
+    private static IEnumerable<string> GetLockKeys(ProcessTransactionRequest request)
+    {
+        return IsTransfer(request.Operation) && !string.IsNullOrWhiteSpace(request.TargetAccountId)
+            ? [request.AccountId, request.TargetAccountId]
+            : [request.AccountId];
+    }
+
+    private static bool IsTransfer(string operation)
+    {
+        return string.Equals(operation, nameof(EnumOperationType.Transfer), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static EnumOperationType ParseOperation(string operation)
+    {
+        if (!Enum.TryParse<EnumOperationType>(operation, true, out var parsedOperation))
+        {
+            throw new ExceptionDomain($"Unsupported operation '{operation}'.");
+        }
+
+        return parsedOperation;
     }
 
     private static string? Validate(ProcessTransactionRequest request)
