@@ -16,5 +16,33 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  rabbitmq:
+    image: rabbitmq:3.11-management
+    container_name: pagueveloz-rabbitmq
+    environment:
+      RABBITMQ_ERLANG_COOKIE: paguevelozcookie
+      RABBITMQ_DEFAULT_USER: pagueveloz
+      RABBITMQ_DEFAULT_PASS: pagueveloz
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    command: [ "sh", "-c", "chown -R rabbitmq:rabbitmq /var/lib/rabbitmq || true; /usr/local/bin/docker-entrypoint.sh rabbitmq-server" ]
+
+  redis:
+    image: redis:7-alpine
+    container_name: pagueveloz-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
 volumes:
   postgres_data:
+  redis_data:
+  rabbitmq_data:
