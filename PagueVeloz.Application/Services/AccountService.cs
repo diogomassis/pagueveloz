@@ -11,6 +11,17 @@ public sealed class AccountService(IAccountRepository accountRepository, IUnitOf
         if (string.IsNullOrWhiteSpace(request.ClientId) || string.IsNullOrWhiteSpace(request.AccountId))
             return CreateFailure(request.AccountId, "Client id and account id are required.");
         CreateAccountResponse? response = null;
+        await unitOfWork.ExecuteAsync(async unitCancellationToken =>
+        {
+            if (await accountRepository.ExistsAsync(request.AccountId, unitCancellationToken))
+            {
+                response = CreateFailure(request.AccountId, "Account already exists.");
+                return;
+            }
+            var account = new AccountDomain(request.ClientId, request.AccountId, request.InitialBalance, request.CreditLimit);
+            await accountRepository.SaveAsync(account, unitCancellationToken);
+            response = CreateSuccess(account);
+        }, cancellationToken);
         return response ?? CreateFailure(request.AccountId, "Account could not be created.");
     }
 
