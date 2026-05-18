@@ -5,6 +5,7 @@ WORKDIR /src
 COPY ["PagueVeloz.sln", "./"]
 COPY ["PagueVeloz.API/PagueVeloz.API.csproj", "PagueVeloz.API/"]
 COPY ["PagueVeloz.Domain/PagueVeloz.Domain.csproj", "PagueVeloz.Domain/"]
+COPY ["PagueVeloz.Application/PagueVeloz.Application.csproj", "PagueVeloz.Application/"]
 
 RUN --mount=type=cache,target=/root/.nuget/packages \
     dotnet restore "PagueVeloz.sln"
