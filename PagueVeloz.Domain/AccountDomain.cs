@@ -14,6 +14,27 @@ public sealed class AccountDomain
         ReservedBalance = ReservedBalance
     };
 
+    public void Credit(long amount)
+    {
+        EnsureActive();
+        EnsurePositiveAmount(amount);
+        Balance += amount;
+    }
+
+    public void Debit(long amount)
+    {
+        EnsureActive();
+        EnsurePositiveAmount(amount);
+
+        if (AvailableBalance + CreditLimit < amount)
+        {
+            throw new ExceptionDomain("Insufficient balance.");
+        }
+
+        Balance -= amount;
+    }
+
+
     private static void EnsurePositiveAmount(long amount)
     {
         if (amount <= 0)
