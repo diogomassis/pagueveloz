@@ -43,6 +43,52 @@ services:
     volumes:
       - redis_data:/data
 
+  pagueveloz-app-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pagueveloz-app-1
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__PagueVeloz: Host=postgres;Port=5432;Database=pagueveloz;Username=pagueveloz;Password=pagueveloz
+      Messaging__RabbitMq__Host: rabbitmq
+      Messaging__RabbitMq__Port: 5672
+      Messaging__RabbitMq__Username: pagueveloz
+      Messaging__RabbitMq__Password: pagueveloz
+      Messaging__RabbitMq__Exchange: pagueveloz.transactions
+      Cache__Redis__ConnectionString: redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  pagueveloz-app-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pagueveloz-app-2
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__PagueVeloz: Host=postgres;Port=5432;Database=pagueveloz;Username=pagueveloz;Password=pagueveloz
+      Messaging__RabbitMq__Host: rabbitmq
+      Messaging__RabbitMq__Port: 5672
+      Messaging__RabbitMq__Username: pagueveloz
+      Messaging__RabbitMq__Password: pagueveloz
+      Messaging__RabbitMq__Exchange: pagueveloz.transactions
+      Cache__Redis__ConnectionString: redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
   haproxy:
     image: haproxy:2.8-alpine
     container_name: pagueveloz-haproxy
