@@ -1,12 +1,17 @@
+using PagueVeloz.Application.Abstractions;
 using PagueVeloz.Application.Dtos;
+using PagueVeloz.Domain;
 
 namespace PagueVeloz.Application.Services;
 
-public sealed class AccountService : IAccountService
+public sealed class AccountService(IAccountRepository accountRepository, IUnitOfWork unitOfWork) : IAccountService
 {
     public async Task<CreateAccountResponse> CreateAsync(CreateAccountRequest request, CancellationToken cancellationToken = default)
     {
-        return null;
+        if (string.IsNullOrWhiteSpace(request.ClientId) || string.IsNullOrWhiteSpace(request.AccountId))
+            return CreateFailure(request.AccountId, "Client id and account id are required.");
+        CreateAccountResponse? response = null;
+        return response ?? CreateFailure(request.AccountId, "Account could not be created.");
     }
 
     private static CreateAccountResponse CreateSuccess(AccountDomain account) => new(
