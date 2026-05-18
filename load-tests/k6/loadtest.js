@@ -10,7 +10,7 @@ export const options = {
     },
 };
 
-const BASE = __ENV.BASE_URL || 'http://localhost:8080';
+const BASE = __ENV.BASE_URL || 'http://localhost:9999';
 
 function rnd() {
     return `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
