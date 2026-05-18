@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using Npgsql;
 using PagueVeloz.Application;
 using PagueVeloz.Application.Dtos;
 using PagueVeloz.Application.Services;
@@ -17,7 +19,47 @@ if (!string.IsNullOrWhiteSpace(webBuilder.Configuration.GetConnectionString("Pag
 {
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<PagueVelozDbContext>();
-    dbContext.Database.EnsureCreated();
+    var connString = webBuilder.Configuration.GetConnectionString("PagueVeloz")!;
+    const long advisoryLockKey = 156789123456789;
+    try
+    {
+        using var conn = new NpgsqlConnection(connString);
+        conn.Open();
+        var sw = Stopwatch.StartNew();
+        var acquired = false;
+        while (!acquired && sw.Elapsed < TimeSpan.FromSeconds(30))
+        {
+            using var cmd = new NpgsqlCommand($"SELECT pg_try_advisory_lock({advisoryLockKey});", conn);
+            var res = cmd.ExecuteScalar();
+            if (res is bool b && b) { acquired = true; break; }
+            Thread.Sleep(500);
+        }
+        if (acquired)
+        {
+            try
+            {
+                dbContext.Database.EnsureCreated();
+            }
+            finally
+            {
+                using var rel = new NpgsqlCommand($"SELECT pg_advisory_unlock({advisoryLockKey});", conn);
+                rel.ExecuteScalar();
+            }
+        }
+        else
+        {
+            // Could not acquire lock in time — skip migration to avoid contention.
+            // The instance that acquired the lock will perform initialization.
+        }
+    }
+    catch (Exception)
+    {
+        try
+        {
+            dbContext.Database.EnsureCreated();
+        }
+        catch { }
+    }
 }
 
 app.MapOpenApi();
@@ -44,8 +86,16 @@ static async Task<IResult> HandleCreateAccountAsync(CreateAccountRequest request
     return result.ErrorMessage is null ? Results.Ok(result) : Results.BadRequest(result);
 }
 
-static async Task<IResult> HandleProcessTransactionAsync(ProcessTransactionRequest request, ITransactionProcessor processor, CancellationToken cancellationToken)
+static async Task<IResult> HandleProcessTransactionAsync(ProcessTransactionRequest request, ITransactionProcessor processor, HttpRequest httpRequest, CancellationToken cancellationToken)
 {
-    var result = await processor.ProcessAsync(request, cancellationToken);
+    var req = request;
+    if (string.IsNullOrWhiteSpace(req.ReferenceId))
+    {
+        if (httpRequest.Headers.TryGetValue("Idempotency-Key", out var idemp) && !string.IsNullOrWhiteSpace(idemp))
+        {
+            req = req with { ReferenceId = idemp.ToString() };
+        }
+    }
+    var result = await processor.ProcessAsync(req, cancellationToken);
     return result.ErrorMessage is null ? Results.Ok(result) : Results.BadRequest(result);
 }
