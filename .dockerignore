@@ -20,3 +20,7 @@ Dockerfile*
 # Environment and secrets
 *.local.settings.json
 appsettings.Development.json
+
+# GitHub
+.github/.pdf/
+.github/.video/
