@@ -23,7 +23,7 @@ while true; do
   if [ "$elapsed" -ge "$WAIT_TIMEOUT" ]; then
     echo "Timed out waiting for API health" >&2
     docker compose logs --no-color || true
-    docker compose down
+    docker compose down --volumes --remove-orphans
     exit 2
   fi
 done
@@ -46,7 +46,7 @@ function request_and_expect() {
   if [ "$status" -ne "$expect_code" ]; then
     echo "Unexpected HTTP status $status (expected $expect_code) for $method $path" >&2
     docker compose logs --no-color || true
-    docker compose down
+    docker compose down --volumes --remove-orphans
     rm -f "$TMPRESP"
     exit 3
   fi
@@ -73,7 +73,7 @@ request_and_expect POST /api/transactions '{"Operation":"transfer","AccountId":"
 
 echo "All scenario steps succeeded. Collecting logs and shutting down services..."
 docker compose logs --no-color > e2e-logs.txt || true
-docker compose down
+docker compose down --volumes --remove-orphans
 rm -f "$TMPRESP"
 
 echo "E2E scenario completed successfully. Logs saved to e2e-logs.txt"

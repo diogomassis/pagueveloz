@@ -77,7 +77,7 @@ while true; do
   if [ "$elapsed" -ge "$timeout" ]; then
     echo "Timed out waiting for services (waited ${timeout}s)" >&2
     docker compose logs --no-color || true
-    docker compose down
+    docker compose down --volumes --remove-orphans
     exit 2
   fi
 done
@@ -94,7 +94,7 @@ while ! (echo > /dev/tcp/localhost/${TEST_RABBIT_PORT}) 2>/dev/null; do
   if [ "$elapsed_tcp" -ge "$timeout" ]; then
     echo "Timed out waiting for TCP port ${TEST_RABBIT_PORT} on localhost" >&2
     docker compose logs --no-color || true
-    docker compose down
+    docker compose down --volumes --remove-orphans
     exit 2
   fi
 done
@@ -118,8 +118,8 @@ export TEST_RABBIT_PASS
 dotnet test PagueVeloz.sln --filter "Category=Integration" -v minimal /p:ConnectionStrings__Default="$TEST_CONNECTION_STRING"
 TEST_EXIT_CODE=$?
 
-echo "Tearing down compose services..."
-docker compose down
+echo "Tearing down compose services and cleaning traces..."
+docker compose down --volumes --remove-orphans
 
 # Remove marker so user must explicitly run docker-helpers before next run
 MARKER_FILE="$ROOT_DIR/.docker_helpers_done"

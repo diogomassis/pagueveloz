@@ -115,7 +115,8 @@ Docker Compose wires these together for end-to-end local testing.
 ### Start Everything
 
 ```bash
-docker compose up -d --build
+docker compose pull
+docker compose up -d
 ```
 
 Local services:
@@ -242,7 +243,8 @@ This repository includes HAProxy configuration (haproxy.cfg) and two API instanc
 ### Run Load-Balanced Locally
 
 ```bash
-docker compose up -d --build haproxy pagueveloz-app-1 pagueveloz-app-2 postgres rabbitmq redis
+docker compose pull
+docker compose up -d haproxy pagueveloz-app-1 pagueveloz-app-2 postgres rabbitmq redis
 ```
 
 ### Smoke Test

@@ -53,7 +53,7 @@ The following items are required for the submission and where to find them in th
 Run the API locally (recommended: use the included Docker helper for full stack):
 
 ```bash
-# Start infra (Postgres, Redis, RabbitMQ) and build images
+# Start infra (Postgres, Redis, RabbitMQ) and pull the latest GHCR image
 ./scripts/docker-helpers.sh --build
 
 # Run the API locally (no docker)
@@ -91,6 +91,7 @@ This section maps every requirement from the challenge spec (mandatory, desirabl
 
 ### Desirable / Differentials (where present)
 
+- CI/CD via GitHub Actions — Automated workflows to build and publish Docker images directly to GHCR (`ghcr.io/diogomassis/pagueveloz`).
 - Docker Compose and helper scripts — [docker-compose.yml](docker-compose.yml) and [scripts/docker-helpers.sh](scripts/docker-helpers.sh).
 - Load tests / performance — [load-tests/k6/loadtest.js](load-tests/k6/loadtest.js).
 - Observability (Telemtry, Metrics & Structured Logging) — 

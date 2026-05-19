@@ -22,8 +22,9 @@ docker compose down --volumes --remove-orphans >/dev/null 2>&1 || true
 docker volume rm pagueveloz_postgres_data pagueveloz_rabbitmq_data pagueveloz_redis_data >/dev/null 2>&1 || true
 
 if [ "$BUILD_FLAG" -eq 1 ]; then
-  echo "Bringing up all services with build..."
-  docker compose up -d --build
+  echo "Pulling latest image and bringing up all services..."
+  docker compose pull pagueveloz-app-1 pagueveloz-app-2
+  docker compose up -d
 else
   echo "Bringing up minimal infra services (postgres redis rabbitmq)..."
   docker compose up -d postgres redis rabbitmq
@@ -43,7 +44,8 @@ if docker compose logs rabbitmq --no-color | grep -q "\.erlang.cookie: eacces"; 
     echo "Retrying to bring up services after cleaning cookie"
     docker compose down --volumes --remove-orphans >/dev/null 2>&1 || true
     if [ "$BUILD_FLAG" -eq 1 ]; then
-      docker compose up -d --build
+      docker compose pull pagueveloz-app-1 pagueveloz-app-2
+      docker compose up -d
     else
       docker compose up -d postgres redis rabbitmq
     fi

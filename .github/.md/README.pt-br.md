@@ -115,7 +115,8 @@ Docker Compose conecta essas dependências para testes end-to-end locais.
 ### Inicie Tudo
 
 ```bash
-docker compose up -d --build
+docker compose pull
+docker compose up -d
 ```
 
 Serviços locais:
@@ -242,7 +243,8 @@ Este repositório inclui configuração HAProxy (haproxy.cfg) e duas instâncias
 ### Execute Com Balanceamento de Carga Localmente
 
 ```bash
-docker compose up -d --build haproxy pagueveloz-app-1 pagueveloz-app-2 postgres rabbitmq redis
+docker compose pull
+docker compose up -d haproxy pagueveloz-app-1 pagueveloz-app-2 postgres rabbitmq redis
 ```
 
 ### Teste Rápido
