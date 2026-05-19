@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry;
+using OpenTelemetry.Metrics;
 using Npgsql;
 using PagueVeloz.Application;
 using PagueVeloz.Application.Dtos;
@@ -17,6 +19,16 @@ webBuilder.Logging.AddJsonConsole(options =>
     options.TimestampFormat = "o"; // ISO 8601
 });
 webBuilder.Logging.SetMinimumLevel(LogLevel.Information);
+
+// Configure OpenTelemetry for observability
+webBuilder.Services.AddOpenTelemetry()
+    .WithMetrics(builder =>
+    {
+        builder
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddConsoleExporter();
+    });
 
 webBuilder.Services.AddOpenApi();
 webBuilder.Services.AddSwaggerGen();

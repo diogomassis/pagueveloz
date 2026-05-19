@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -17,6 +19,17 @@ public sealed class TransactionProcessor : ITransactionProcessor
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<TransactionProcessor> _logger;
 
+    // Telemetry
+    private static readonly Meter Meter = new("PagueVeloz.Application.TransactionProcessor");
+    private static readonly Counter<long> TransactionCounter = Meter.CreateCounter<long>(
+        "pagueveloz.transactions.processed",
+        "count",
+        "Total number of transactions processed");
+    private static readonly Histogram<double> TransactionLatency = Meter.CreateHistogram<double>(
+        "pagueveloz.transactions.latency_ms",
+        "ms",
+        "Transaction processing latency");
+
     public TransactionProcessor(IAccountRepository accountRepository, IIdempotencyStore idempotencyStore,
         IAccountLockProvider accountLockProvider, IEventPublisher eventPublisher, IUnitOfWork unitOfWork, ILogger<TransactionProcessor>? logger = null)
     {
@@ -30,6 +43,7 @@ public sealed class TransactionProcessor : ITransactionProcessor
 
     public async Task<ProcessTransactionResponse> ProcessAsync(ProcessTransactionRequest request, CancellationToken cancellationToken = default)
     {
+        var stopwatch = Stopwatch.StartNew();
         _logger.LogInformation("Processing transaction {Operation} for AccountId={AccountId} ReferenceId={ReferenceId}", request.Operation, request.AccountId, request.ReferenceId);
         var validationError = Validate(request);
         if (validationError is not null)
@@ -110,6 +124,13 @@ public sealed class TransactionProcessor : ITransactionProcessor
                 response = Failed(request.ReferenceId, exception.Message);
             }
         }, cancellationToken);
+
+        stopwatch.Stop();
+        var operation = request.Operation ?? "unknown";
+        var status = response?.ErrorMessage is null ? "success" : "failure";
+        TransactionCounter.Add(1, new KeyValuePair<string, object?>("operation", operation), new KeyValuePair<string, object?>("status", status));
+        TransactionLatency.Record(stopwatch.Elapsed.TotalMilliseconds, new KeyValuePair<string, object?>("operation", operation), new KeyValuePair<string, object?>("status", status));
+
         return response ?? Failed(request.ReferenceId, "Transaction could not be processed.");
     }
 
