@@ -112,7 +112,7 @@ This section maps every requirement from the challenge spec (mandatory, desirabl
 - Account-level locking (in-memory provider): [PagueVeloz.Infrastructure/InMemoryAccountLockProvider.cs](PagueVeloz.Infrastructure/InMemoryAccountLockProvider.cs).
 - Advisory lock for DB initialization (prevents concurrent EnsureCreated attempts): [PagueVeloz.API/Program.cs](PagueVeloz.API/Program.cs) (uses pg_try_advisory_lock).
 
-### Example scenarios (from the challenge PDF) and where they are covered
+### Example scenarios and where they are covered
 
 Case #1 — Basic credit and debit operations
 
