@@ -12,7 +12,7 @@ PagueVeloz is a small, production-oriented service that models account balances,
 
 ---
 
-## What the evaluator will find here
+## What you will find here
 
 - Solution root / entry: `PagueVeloz.sln`
 - API implementation: `PagueVeloz.API/` (exposes OpenAPI at `/openapi/v1.json` when running)
