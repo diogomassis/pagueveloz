@@ -1,5 +1,40 @@
 # pagueveloz
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Scope](#scope)
+- [Architecture](#architecture)
+  - [High-Level Architecture](#high-level-architecture)
+  - [Request Flow](#request-flow)
+- [Design Decisions](#design-decisions)
+  - [No CQRS](#no-cqrs)
+  - [Strong Consistency](#strong-consistency)
+  - [CAP Trade-off](#cap-trade-off)
+  - [System Trade-offs](#system-trade-offs)
+- [Repository Structure](#repository-structure)
+- [Runtime Dependencies](#runtime-dependencies)
+- [Running the Service](#running-the-service)
+  - [Start Everything](#start-everything)
+  - [Stop Everything](#stop-everything)
+  - [Run API Locally](#run-api-locally)
+- [Configuration](#configuration)
+- [Testing](#testing)
+- [Failure Handling](#failure-handling)
+  - [Fallback Infrastructure](#fallback-infrastructure)
+  - [Concurrency Control](#concurrency-control)
+  - [Message Publishing Resilience](#message-publishing-resilience)
+- [Development Environment](#development-environment)
+- [Operational Behavior](#operational-behavior)
+- [API Documentation](#api-documentation)
+  - [Create Account](#create-account)
+  - [Process Transaction](#process-transaction)
+- [API Surface (Endpoints summary)](#api-surface-endpoints-summary)
+- [Horizontal Scalability](#horizontal-scalability)
+  - [Run Load-Balanced Locally](#run-load-balanced-locally)
+  - [Smoke Test](#smoke-test)
+  - [Important Notes](#important-notes)
+
 ## Overview
 
 PagueVeloz is a compact financial transaction service built with Clean Architecture and DDD principles. Domain logic is explicit, business invariants are protected, and the system remains straightforward under load and failure.
@@ -230,7 +265,70 @@ OpenAPI and Swagger UI are exposed in all environments, including production. Op
 - Redis: Caching and idempotency support (not durable business storage)
 - Consistency boundary unavailable → service fails safely (no optimistic answers)
 
-## API Surface
+## API Details
+
+### Create Account
+
+Creates a new financial account with initial balance and credit limit.
+
+- **URL:** `POST /api/accounts`
+- **Content-Type:** `application/json`
+
+**Example Request:**
+```json
+{
+  "ClientId": "CLI-1",
+  "AccountId": "ACC-1",
+  "InitialBalance": 0,
+  "CreditLimit": 50000
+}
+```
+
+**Example Response (200 OK):**
+```json
+{
+  "accountId": "ACC-1",
+  "status": "success",
+  "balance": 0,
+  "reservedBalance": 0,
+  "availableBalance": 50000,
+  "timestamp": "2026-05-19T10:00:00.0000000+00:00",
+  "errorMessage": null
+}
+```
+
+### Process Transaction
+
+Processes financial operations like `credit`, `debit`, `reserve`, `capture` or `transfer`. It uses the `ReferenceId` for idempotency guarantee (you can also pass `Idempotency-Key` in HTTP headers).
+
+- **URL:** `POST /api/transactions`
+- **Content-Type:** `application/json`
+
+**Example Request:**
+```json
+{
+  "Operation": "credit",
+  "AccountId": "ACC-1",
+  "Amount": 100000,
+  "Currency": "BRL",
+  "ReferenceId": "r1"
+}
+```
+
+**Example Response (200 OK):**
+```json
+{
+  "transactionId": "b1a2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+  "status": "success",
+  "balance": 100000,
+  "reservedBalance": 0,
+  "availableBalance": 150000,
+  "timestamp": "2026-05-19T10:00:01.0000000+00:00",
+  "errorMessage": null
+}
+```
+
+## API Surface (Endpoints summary)
 
 - `GET /health`
 - `POST /api/accounts`

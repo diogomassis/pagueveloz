@@ -1,5 +1,40 @@
 # pagueveloz
 
+## Índice
+
+- [Visão Geral](#visão-geral)
+- [Escopo](#escopo)
+- [Arquitetura](#arquitetura)
+  - [Arquitetura de Alto Nível](#arquitetura-de-alto-nível)
+  - [Fluxo de Requisição](#fluxo-de-requisição)
+- [Decisões de Design](#decisões-de-design)
+  - [Sem CQRS](#sem-cqrs)
+  - [Consistência Forte](#consistência-forte)
+  - [Compensação CAP](#compensação-cap)
+  - [Compensações do Sistema](#compensações-do-sistema)
+- [Estrutura do Repositório](#estrutura-do-repositório)
+- [Dependências em Tempo de Execução](#dependências-em-tempo-de-execução)
+- [Executando o Serviço](#executando-o-serviço)
+  - [Inicie Tudo](#inicie-tudo)
+  - [Pare Tudo](#pare-tudo)
+  - [Execute API Localmente](#execute-api-localmente)
+- [Configuração](#configuração)
+- [Testes](#testes)
+- [Tratamento de Falhas](#tratamento-de-falhas)
+  - [Infraestrutura de Fallback](#infraestrutura-de-fallback)
+  - [Controle de Concorrência](#controle-de-concorrência)
+  - [Resiliência de Publicação de Mensagens](#resiliência-de-publicação-de-mensagens)
+- [Ambiente de Desenvolvimento](#ambiente-de-desenvolvimento)
+- [Comportamento Operacional](#comportamento-operacional)
+- [Documentação da API](#documentação-da-api)
+  - [Criar Conta (Create Account)](#criar-conta-create-account)
+  - [Processar Transação (Process Transaction)](#processar-transação-process-transaction)
+- [Superfície da API (Resumo)](#superfície-da-api-resumo)
+- [Escalabilidade Horizontal](#escalabilidade-horizontal)
+  - [Execute Com Balanceamento de Carga Localmente](#execute-com-balanceamento-de-carga-localmente)
+  - [Teste Rápido](#teste-rápido)
+  - [Notas Importantes](#notas-importantes)
+
 ## Visão Geral
 
 PagueVeloz é um serviço compacto de transações financeiras construído com Arquitetura Limpa e princípios de DDD. A lógica de domínio é explícita, os invariantes de negócio são protegidos, e o sistema permanece direto sob carga e falha.
@@ -209,7 +244,7 @@ Bloqueios por conta impedem escritas intercaladas durante requisições simultâ
 
 Conexões RabbitMQ são preguiçosas, usam backoff exponencial e são envolvidas com um disjuntor. Se o broker está indisponível, a API falha a transação após esgotadas as tentativas, deixando o chamador decidir se tenta novamente ou relata erro. Previne falhas em cascata.
 
-### Documentação da API
+### Detalhes daAPI
 
 OpenAPI e Swagger UI são expostos em todos os ambientes, incluindo produção. Equipes operacionais e scripts de depuração sempre podem acessar `/swagger/index.html` ou `/openapi/v1.json` sem setup especial.
 
@@ -230,7 +265,70 @@ OpenAPI e Swagger UI são expostos em todos os ambientes, incluindo produção. 
 - Redis: Suporte para cache e idempotência (não armazenamento durável de negócio)
 - Limite de consistência indisponível → serviço falha com segurança (sem respostas otimistas)
 
-## Superfície da API
+## Documentação da API
+
+### Criar Conta (Create Account)
+
+Cria uma nova conta financeira com saldo inicial e limite de crédito.
+
+- **URL:** `POST /api/accounts`
+- **Content-Type:** `application/json`
+
+**Exemplo de Request:**
+```json
+{
+  "ClientId": "CLI-1",
+  "AccountId": "ACC-1",
+  "InitialBalance": 0,
+  "CreditLimit": 50000
+}
+```
+
+**Exemplo de Response (200 OK):**
+```json
+{
+  "accountId": "ACC-1",
+  "status": "success",
+  "balance": 0,
+  "reservedBalance": 0,
+  "availableBalance": 50000,
+  "timestamp": "2026-05-19T10:00:00.0000000+00:00",
+  "errorMessage": null
+}
+```
+
+### Processar Transação (Process Transaction)
+
+Processa operações financeiras como `credit`, `debit`, `reserve`, `capture` ou `transfer`. Utiliza o `ReferenceId` para garantia de idempotência (você também pode usar `Idempotency-Key` no cabeçalho HTTP).
+
+- **URL:** `POST /api/transactions`
+- **Content-Type:** `application/json`
+
+**Exemplo de Request:**
+```json
+{
+  "Operation": "credit",
+  "AccountId": "ACC-1",
+  "Amount": 100000,
+  "Currency": "BRL",
+  "ReferenceId": "r1"
+}
+```
+
+**Exemplo de Response (200 OK):**
+```json
+{
+  "transactionId": "b1a2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+  "status": "success",
+  "balance": 100000,
+  "reservedBalance": 0,
+  "availableBalance": 150000,
+  "timestamp": "2026-05-19T10:00:01.0000000+00:00",
+  "errorMessage": null
+}
+```
+
+## Superfície da API (Resumo)
 
 - `GET /health`
 - `POST /api/accounts`
