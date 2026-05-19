@@ -140,3 +140,17 @@ Case #5 — Failures and retry (publish retry/backoff)
 - Load tests and k6 scenario: [load-tests/k6/loadtest.js](load-tests/k6/loadtest.js).
 - Test orchestration scripts: [scripts/docker-helpers.sh](scripts/docker-helpers.sh), [scripts/run-integration-tests.sh](scripts/run-integration-tests.sh), [scripts/run-e2e-tests.sh](scripts/run-e2e-tests.sh).
 - Challenge specification PDF (source of the requirements): [.github/.pdf/pagueveloz-challenge.pdf](.github/.pdf/pagueveloz-challenge.pdf).
+
+---
+
+## Security Notice
+
+**Note on Connection Strings:** For the purpose of this technical challenge and to ensure the application runs seamlessly out-of-the-box via Docker Compose, connection strings and credentials (e.g., PostgreSQL, Redis, RabbitMQ) have been hardcoded in `appsettings.Development.json` and `docker-compose.yml`.
+
+**This is not a recommended practice for production environments.**
+
+In a real-world, production-grade application, you should:
+
+- Never commit secrets to version control.
+- Use secure secret management solutions such as **Azure Key Vault**, **AWS Secrets Manager**, or **HashiCorp Vault**.
+- Provide credentials dynamically via Environment Variables securely injected at runtime by your orchestration platform (e.g., Kubernetes Secrets, Docker Swarm Secrets).
