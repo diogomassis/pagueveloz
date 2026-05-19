@@ -8,11 +8,19 @@ Documentation Available In: [English](./.github/.md/README.en.md) — [Portuguê
 
 ---
 
-## Summary
+## Table of Contents
 
-PagueVeloz is a small, production-oriented service that models account balances, reservations and transfers with emphasis on correctness, idempotency and observability.
-
----
+- [What you will find here](#what-you-will-find-here)
+- [Mandatory Requirements (from challenge)](#mandatory-requirements-from-challenge)
+- [Desirable Differentials (optional)](#desirable-differentials-optional)
+- [Short Usage](#short-usage)
+- [Requirements mapping (where to find each item)](#requirements-mapping-where-to-find-each-item)
+  - [Mandatory requirements](#mandatory-requirements)
+  - [Desirable / Differentials (where present)](#desirable--differentials-where-present)
+  - [Where idempotency, locking and concurrency are implemented](#where-idempotency-locking-and-concurrency-are-implemented)
+  - [Example scenarios and where they are covered](#example-scenarios-and-where-they-are-covered)
+  - [Additional important files](#additional-important-files)
+- [Security Notice](#security-notice)
 
 ## What you will find here
 
@@ -96,7 +104,7 @@ This section maps every requirement from the challenge spec (mandatory, desirabl
 - CI/CD via GitHub Actions — Automated workflows to build and publish Docker images directly to GHCR (`ghcr.io/diogomassis/pagueveloz`).
 - Docker Compose and helper scripts — [docker-compose.yml](docker-compose.yml) and [scripts/docker-helpers.sh](scripts/docker-helpers.sh).
 - Load tests / performance — [load-tests/k6/loadtest.js](load-tests/k6/loadtest.js).
-- Observability (Telemtry, Metrics & Structured Logging) — 
+- Observability (Telemtry, Metrics & Structured Logging) —
   - Standard JSON logging on stdout for scalable log ingesting.
   - OpenTelemetry implemented via `OpenTelemetry.Instrumentation.AspNetCore` and `OpenTelemetry.Instrumentation.Http` in [PagueVeloz.API/Program.cs](PagueVeloz.API/Program.cs) (exposed via console exporter).
   - Custom application metrics (Counters and Histograms) tracked for account creation and transactions using `System.Diagnostics.Metrics.Meter` in [PagueVeloz.Application/Services/TransactionProcessor.cs](PagueVeloz.Application/Services/TransactionProcessor.cs) and [PagueVeloz.Application/Services/AccountService.cs](PagueVeloz.Application/Services/AccountService.cs).
