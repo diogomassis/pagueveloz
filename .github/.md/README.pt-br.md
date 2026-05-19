@@ -68,7 +68,8 @@ Preocupações do framework ficam fora da lógica de negócio. O comportamento p
 
 ```mermaid
 flowchart LR
- Client[Cliente / Consumidor] --> API[PagueVeloz.API]
+ Client[Cliente / Consumidor] --> HAP[HAProxy]
+ HAP --> API[PagueVeloz.API]
  API --> App[PagueVeloz.Application]
  App --> Domain[PagueVeloz.Domain]
  App --> Infra[PagueVeloz.Infrastructure]
@@ -82,6 +83,7 @@ flowchart LR
 ```mermaid
 sequenceDiagram
  participant C as Cliente
+ participant H as HAProxy
  participant A as API
  participant U as Application
  participant D as Domain
@@ -89,7 +91,8 @@ sequenceDiagram
  participant R as RabbitMQ
  participant X as Redis
 
- C->>A: Requisição HTTP
+ C->>H: Requisição HTTP
+ H->>A: Encaminha requisição
  A->>U: Valida e despacha
  U->>D: Executa regra de negócio
  U->>X: Verifica/armazena idempotência

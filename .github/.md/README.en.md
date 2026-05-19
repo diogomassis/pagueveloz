@@ -68,7 +68,8 @@ Framework concerns stay out of business logic. Core behavior is testable without
 
 ```mermaid
 flowchart LR
- Client[Client / Consumer] --> API[PagueVeloz.API]
+ Client[Client / Consumer] --> HAP[HAProxy]
+ HAP --> API[PagueVeloz.API]
  API --> App[PagueVeloz.Application]
  App --> Domain[PagueVeloz.Domain]
  App --> Infra[PagueVeloz.Infrastructure]
@@ -82,6 +83,7 @@ flowchart LR
 ```mermaid
 sequenceDiagram
  participant C as Client
+ participant H as HAProxy
  participant A as API
  participant U as Application
  participant D as Domain
@@ -89,7 +91,8 @@ sequenceDiagram
  participant R as RabbitMQ
  participant X as Redis
 
- C->>A: HTTP request
+ C->>H: HTTP request
+ H->>A: Forward request
  A->>U: Validate and dispatch
  U->>D: Execute business rule
  U->>X: Check/store idempotency
