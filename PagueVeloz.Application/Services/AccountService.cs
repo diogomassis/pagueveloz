@@ -1,28 +1,52 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using PagueVeloz.Application.Abstractions;
 using PagueVeloz.Application.Dtos;
 using PagueVeloz.Domain;
 
 namespace PagueVeloz.Application.Services;
 
-public sealed class AccountService(IAccountRepository accountRepository, IUnitOfWork unitOfWork) : IAccountService
+public sealed class AccountService : IAccountService
 {
+    private readonly IAccountRepository _accountRepository;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<AccountService> _logger;
+
+    public AccountService(IAccountRepository accountRepository, IUnitOfWork unitOfWork, ILogger<AccountService>? logger = null)
+    {
+        _accountRepository = accountRepository;
+        _unitOfWork = unitOfWork;
+        _logger = logger ?? NullLogger<AccountService>.Instance;
+    }
+
     public async Task<CreateAccountResponse> CreateAsync(CreateAccountRequest request, CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("CreateAccount invoked for ClientId={ClientId} AccountId={AccountId}", request.ClientId, request.AccountId);
         if (string.IsNullOrWhiteSpace(request.ClientId) || string.IsNullOrWhiteSpace(request.AccountId))
-            return CreateFailure(request.AccountId, "Client id and account id are required.");
-        CreateAccountResponse? response = null;
-        await unitOfWork.ExecuteAsync(async unitCancellationToken =>
         {
-            if (await accountRepository.ExistsAsync(request.AccountId, unitCancellationToken))
+            _logger.LogWarning("CreateAccount validation failed for ClientId={ClientId} AccountId={AccountId}", request.ClientId, request.AccountId);
+            return CreateFailure(request.AccountId, "Client id and account id are required.");
+        }
+        CreateAccountResponse? response = null;
+        await _unitOfWork.ExecuteAsync(async unitCancellationToken =>
+        {
+            if (await _accountRepository.ExistsAsync(request.AccountId, unitCancellationToken))
             {
+                _logger.LogWarning("CreateAccount rejected; account already exists {AccountId}", request.AccountId);
                 response = CreateFailure(request.AccountId, "Account already exists.");
                 return;
             }
             var account = new AccountDomain(request.ClientId, request.AccountId, request.InitialBalance, request.CreditLimit);
-            await accountRepository.SaveAsync(account, unitCancellationToken);
+            await _accountRepository.SaveAsync(account, unitCancellationToken);
             response = CreateSuccess(account);
+            _logger.LogInformation("Account created {AccountId}", account.AccountId);
         }, cancellationToken);
-        return response ?? CreateFailure(request.AccountId, "Account could not be created.");
+        if (response is null)
+        {
+            _logger.LogError("CreateAccount failed for {AccountId}", request.AccountId);
+            return CreateFailure(request.AccountId, "Account could not be created.");
+        }
+        return response;
     }
 
     private static CreateAccountResponse CreateSuccess(AccountDomain account) => new(

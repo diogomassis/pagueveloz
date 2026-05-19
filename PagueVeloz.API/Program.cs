@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using PagueVeloz.Application;
 using PagueVeloz.Application.Dtos;
@@ -8,12 +9,23 @@ using PagueVeloz.Infrastructure.Persistence;
 
 var webBuilder = WebApplication.CreateBuilder(args);
 
+// Configure structured JSON logging to console for better observability
+webBuilder.Logging.ClearProviders();
+webBuilder.Logging.AddJsonConsole(options =>
+{
+    options.IncludeScopes = true;
+    options.TimestampFormat = "o"; // ISO 8601
+});
+webBuilder.Logging.SetMinimumLevel(LogLevel.Information);
+
 webBuilder.Services.AddOpenApi();
 webBuilder.Services.AddSwaggerGen();
 webBuilder.Services.AddApplication();
 webBuilder.Services.AddInfrastructure(webBuilder.Configuration);
 
 var app = webBuilder.Build();
+
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
 if (!string.IsNullOrWhiteSpace(webBuilder.Configuration.GetConnectionString("PagueVeloz")))
 {
@@ -25,6 +37,7 @@ if (!string.IsNullOrWhiteSpace(webBuilder.Configuration.GetConnectionString("Pag
     {
         using var conn = new NpgsqlConnection(connString);
         conn.Open();
+        logger.LogInformation("Attempting to acquire advisory lock {LockKey} for DB initialization", advisoryLockKey);
         var sw = Stopwatch.StartNew();
         var acquired = false;
         while (!acquired && sw.Elapsed < TimeSpan.FromSeconds(30))
@@ -36,29 +49,36 @@ if (!string.IsNullOrWhiteSpace(webBuilder.Configuration.GetConnectionString("Pag
         }
         if (acquired)
         {
+            logger.LogInformation("Acquired advisory lock {LockKey}; running EnsureCreated()", advisoryLockKey);
             try
             {
                 dbContext.Database.EnsureCreated();
+                logger.LogInformation("Database initialization EnsureCreated() completed");
             }
             finally
             {
                 using var rel = new NpgsqlCommand($"SELECT pg_advisory_unlock({advisoryLockKey});", conn);
                 rel.ExecuteScalar();
+                logger.LogInformation("Released advisory lock {LockKey}", advisoryLockKey);
             }
         }
         else
         {
-            // Could not acquire lock in time — skip migration to avoid contention.
-            // The instance that acquired the lock will perform initialization.
+            logger.LogWarning("Could not acquire advisory lock {LockKey} within timeout; skipping EnsureCreated() to avoid contention", advisoryLockKey);
         }
     }
     catch (Exception)
     {
+        logger.LogWarning("Failed to acquire advisory lock or connect to DB; attempting best-effort EnsureCreated() without lock");
         try
         {
             dbContext.Database.EnsureCreated();
+            logger.LogInformation("Best-effort EnsureCreated() completed");
         }
-        catch { }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Best-effort EnsureCreated() failed");
+        }
     }
 }
 
@@ -80,13 +100,20 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
 app.Run();
 
-static async Task<IResult> HandleCreateAccountAsync(CreateAccountRequest request, IAccountService accountService, CancellationToken cancellationToken)
+static async Task<IResult> HandleCreateAccountAsync(CreateAccountRequest request, IAccountService accountService, ILogger<Program> logger, CancellationToken cancellationToken)
 {
+    logger.LogInformation("CreateAccount request received {ClientId} {AccountId}", request.ClientId, request.AccountId);
     var result = await accountService.CreateAsync(request, cancellationToken);
-    return result.ErrorMessage is null ? Results.Ok(result) : Results.BadRequest(result);
+    if (result.ErrorMessage is null)
+    {
+        logger.LogInformation("CreateAccount succeeded {AccountId}", result.AccountId);
+        return Results.Ok(result);
+    }
+    logger.LogWarning("CreateAccount failed {AccountId} {Error}", result.AccountId, result.ErrorMessage);
+    return Results.BadRequest(result);
 }
 
-static async Task<IResult> HandleProcessTransactionAsync(ProcessTransactionRequest request, ITransactionProcessor processor, HttpRequest httpRequest, CancellationToken cancellationToken)
+static async Task<IResult> HandleProcessTransactionAsync(ProcessTransactionRequest request, ITransactionProcessor processor, HttpRequest httpRequest, ILogger<Program> logger, CancellationToken cancellationToken)
 {
     var req = request;
     if (string.IsNullOrWhiteSpace(req.ReferenceId))
@@ -96,6 +123,13 @@ static async Task<IResult> HandleProcessTransactionAsync(ProcessTransactionReque
             req = req with { ReferenceId = idemp.ToString() };
         }
     }
+    logger.LogInformation("ProcessTransaction request {Operation} {AccountId} {ReferenceId}", req.Operation, req.AccountId, req.ReferenceId);
     var result = await processor.ProcessAsync(req, cancellationToken);
-    return result.ErrorMessage is null ? Results.Ok(result) : Results.BadRequest(result);
+    if (result.ErrorMessage is null)
+    {
+        logger.LogInformation("Transaction processed {TransactionId} {Status}", result.TransactionId, result.Status);
+        return Results.Ok(result);
+    }
+    logger.LogWarning("Transaction failed {ReferenceId} {Error}", req.ReferenceId, result.ErrorMessage);
+    return Results.BadRequest(result);
 }
