@@ -154,60 +154,43 @@ Sem essas, a infraestrutura volta para implementações em memória ou degradada
 
 ## Testes
 
-### Testes Unitários
+Siga esta ordem exata para reproduzir as execuções usadas pelos mantenedores do projeto. Os scripts de teste dependem de `./scripts/docker-helpers.sh`, que realiza reparos comuns e cria um arquivo marcador; execute-o primeiro e não espere que os outros scripts o invoquem automaticamente.
+
+1) Preparar serviços Docker e executar reparos (obrigatório)
+
+```bash
+./scripts/docker-helpers.sh --build
+```
+
+2) Testes unitários (rápidos, sem serviços externos)
 
 ```bash
 dotnet test PagueVeloz.sln --filter "Category!=Integration" -v minimal
 ```
 
-Testes rápidos sem serviços externos.
-
-### Testes de Integração
+3) Testes de integração (requer marcador do docker-helpers)
 
 ```bash
-chmod +x scripts/run-integration-tests.sh
 WAIT_TIMEOUT=180 ./scripts/run-integration-tests.sh
 ```
 
-Inicia PostgreSQL, Redis, RabbitMQ; aguarda prontidão; executa testes de integração; derruba.
-
-Opcional:
+4) Testes end-to-end (pilha completa; requer docker-helpers --build)
 
 ```bash
-SERVICES="postgres redis" WAIT_TIMEOUT=180 ./scripts/run-integration-tests.sh
-```
-
-Variáveis de ambiente:
-
-- `TEST_CONNECTION_STRING`
-- `TEST_REDIS_CONNECTION`
-- `TEST_RABBIT_HOST`
-- `TEST_RABBIT_PORT`
-- `TEST_RABBIT_USER`
-- `TEST_RABBIT_PASS`
-
-### Testes End-to-End
-
-```bash
-chmod +x scripts/run-e2e-tests.sh
 WAIT_TIMEOUT=180 ./scripts/run-e2e-tests.sh
 ```
 
-Traz pilha completa, aguarda prontidão HTTP/AMQP, executa jornada realista de usuário, registra logs, encerra.
-
-### Apenas Compilação
+5) Testes de carga (k6)
 
 ```bash
-dotnet build -v minimal
+./scripts/docker-helpers.sh --build
+k6 run load-tests/k6/loadtest.js
 ```
 
-### Validação Completa
+Observações:
 
-```bash
-dotnet test PagueVeloz.sln --filter "Category!=Integration" -v minimal
-WAIT_TIMEOUT=180 ./scripts/run-integration-tests.sh
-WAIT_TIMEOUT=180 ./scripts/run-e2e-tests.sh
-```
+- `./scripts/docker-helpers.sh` cria um arquivo marcador `.docker_helpers_done`. Os scripts de integração e E2E exigem esse marcador e falharão se ele estiver ausente.
+- O helper tenta reparos automáticos para problemas comuns com `.erlang.cookie` do RabbitMQ e recria volumes quando necessário.
 
 ## Tratamento de Falhas
 

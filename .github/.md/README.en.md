@@ -154,60 +154,43 @@ Without these, the infrastructure falls back to in-memory or degraded implementa
 
 ## Testing
 
-### Unit Tests
+Follow this exact sequence to reproduce the evaluation runs used by the project maintainers. The test scripts rely on `./scripts/docker-helpers.sh` which performs common repairs and creates a marker file; run it first and do not expect other scripts to invoke it automatically.
+
+1) Prepare Docker services and automatic repair (must run first)
+
+```bash
+./scripts/docker-helpers.sh --build
+```
+
+2) Unit tests (fast, no external services)
 
 ```bash
 dotnet test PagueVeloz.sln --filter "Category!=Integration" -v minimal
 ```
 
-Fast tests without external services.
-
-### Integration Tests
+3) Integration tests (requires `docker-helpers` marker)
 
 ```bash
-chmod +x scripts/run-integration-tests.sh
 WAIT_TIMEOUT=180 ./scripts/run-integration-tests.sh
 ```
 
-Starts PostgreSQL, Redis, RabbitMQ; waits for readiness; runs integration tests; tears down.
-
-Optional:
+4) End-to-end tests (full stack; requires `docker-helpers --build`)
 
 ```bash
-SERVICES="postgres redis" WAIT_TIMEOUT=180 ./scripts/run-integration-tests.sh
-```
-
-Environment variables:
-
-- `TEST_CONNECTION_STRING`
-- `TEST_REDIS_CONNECTION`
-- `TEST_RABBIT_HOST`
-- `TEST_RABBIT_PORT`
-- `TEST_RABBIT_USER`
-- `TEST_RABBIT_PASS`
-
-### End-to-End Tests
-
-```bash
-chmod +x scripts/run-e2e-tests.sh
 WAIT_TIMEOUT=180 ./scripts/run-e2e-tests.sh
 ```
 
-Brings full stack up, waits for HTTP/AMQP readiness, executes realistic user journey, logs, then shuts down.
-
-### Build Only
+5) Load tests (k6)
 
 ```bash
-dotnet build -v minimal
+./scripts/docker-helpers.sh --build
+k6 run load-tests/k6/loadtest.js
 ```
 
-### Full Validation
+Notes:
 
-```bash
-dotnet test PagueVeloz.sln --filter "Category!=Integration" -v minimal
-WAIT_TIMEOUT=180 ./scripts/run-integration-tests.sh
-WAIT_TIMEOUT=180 ./scripts/run-e2e-tests.sh
-```
+- `./scripts/docker-helpers.sh` creates a marker file `.docker_helpers_done`. Integration and E2E scripts require that marker and will fail if it's missing.
+- The helper attempts automatic repair for common RabbitMQ `.erlang.cookie` issues and recreates volumes when needed.
 
 ## Failure Handling
 
