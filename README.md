@@ -2,6 +2,8 @@
 
 Compact financial transaction service implementing Clean Architecture and DDD principles. This repository contains a ready-to-run implementation, tests and helper scripts to reproduce the evaluation scenarios locally.
 
+> **Watch the Demo**: To make the evaluation process easier, I recorded a video demonstrating how to execute the project and the expected test results. It is available at [`.github/.video/tests.mp4`](./.github/.video/tests.mp4).
+
 Documentation Available In: [English](./.github/.md/README.en.md) — [Português (BR)](./.github/.md/README.pt-br.md)
 
 ---
