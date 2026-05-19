@@ -1,172 +1,141 @@
 # PagueVeloz
 
-Compact financial transaction service with Clean Architecture and DDD principles.
+Compact financial transaction service implementing Clean Architecture and DDD principles. This repository contains a ready-to-run implementation, tests and helper scripts to reproduce the evaluation scenarios locally.
 
-Documentation Available In:
-
-- [🇺🇸 English](./.github/docs/README.en.md)
-- [🇧🇷 Português Brasileiro](./.github/docs/README.pt-br.md)
+Documentation Available In: [English](./.github/.md/README.en.md) — [Português (BR)](./.github/.md/README.pt-br.md)
 
 ---
 
-## Tech Stack
+## One-line Summary
 
-### Core Framework & Runtime
-
-| Technology | Version | Purpose |
-|-----------|---------|---------|
-| **.NET** | 9.0.314 | Application runtime and framework |
-| **C#** | Latest | Primary programming language |
-| **ASP NET Core** | Latest | Web framework and HTTP handling |
-
-### Persistence & Storage
-
-| Technology | Version | Purpose |
-|-----------|---------|---------|
-| **PostgreSQL** | Latest | Primary transactional database, source of truth |
-| **Redis** | Latest | Distributed caching and idempotency store |
-| **Entity Framework Core** | Latest | ORM for database operations |
-
-### Messaging & Events
-
-| Technology | Version | Purpose |
-|-----------|---------|---------|
-| **RabbitMQ** | Latest | Asynchronous event publication and message broker |
-
-### Architecture & Design Patterns
-
-| Pattern | Purpose |
-|---------|---------|
-| **Clean Architecture** | Layered separation of concerns (Domain, Application, Infrastructure, API) |
-| **Domain-Driven Design (DDD)** | Domain-first approach to modeling business logic |
-| **Repository Pattern** | Abstract data access layer |
-| **Dependency Injection** | Loose coupling and testability |
-| **CQRS** | Not used (intentionally simple for current scope) |
-| **Event Sourcing** | Not used (PostgreSQL transactional model preferred) |
-
-### Testing & Quality
-
-| Technology | Purpose |
-|-----------|---------|
-| **xUnit / NUnit** | Unit and integration testing frameworks |
-| **Moq** | Mocking library for dependency isolation |
-| **k6** | Load and performance testing |
-
-### DevOps & Containerization
-
-| Technology | Version | Purpose |
-|-----------|---------|---------|
-| **Docker** | 29.3.0 | Container runtime and image building |
-| **Docker Compose** | v5.1.0 | Multi-container orchestration (local development) |
-| **HAProxy** | Latest | Load balancing and request distribution (local) |
-
-### Observability & Documentation
-
-| Technology | Purpose |
-|-----------|---------|
-| **OpenAPI / Swagger** | API documentation and specification |
-| **Swagger UI** | Interactive API documentation interface |
-
-### Development Environment
-
-| Component | Specification |
-|-----------|---------------|
-| **OS** | Debian GNU/Linux 12 (bookworm) |
-| **Architecture** | x86_64 |
-| **CPU** | 8 vCPUs, Intel Core i5-1135G7 @ 2.40 GHz |
-| **Memory** | 7.5 GiB RAM |
-| **SDK** | .NET SDK 9.0.314 |
-
-### Project Structure
-
-```folder
-PagueVeloz/
-├── PagueVeloz.Domain/              # Entities, value objects, business rules
-├── PagueVeloz.Application/         # Use cases, orchestration, DTOs
-├── PagueVeloz.Infrastructure/      # Persistence, messaging, caching
-│   ├── Persistence/                # Database implementations
-│   ├── Messaging/                  # RabbitMQ publishers and handlers
-│   ├── Caching/                    # Redis-backed caching
-│   └── Hosting/                    # Infrastructure setup
-├── PagueVeloz.API/                 # HTTP endpoints, OpenAPI, composition root
-├── PagueVeloz.Tests/               # Unit and integration tests
-├── scripts/                        # Automation and testing scripts
-└── load-tests/                     # k6 load testing scenarios
-```
+PagueVeloz is a small, production-oriented service that models account balances, reservations and transfers with emphasis on correctness, idempotency and observability.
 
 ---
 
-## Quick Start
+## What the evaluator will find here
 
-### With Docker
+- Solution root / entry: `PagueVeloz.sln`
+- API implementation: `PagueVeloz.API/` (exposes OpenAPI at `/openapi/v1.json` when running)
+- Application logic: `PagueVeloz.Application/`
+- Domain model: `PagueVeloz.Domain/`
+- Infrastructure adapters (Postgres, Redis, RabbitMQ fallbacks): `PagueVeloz.Infrastructure/`
+- Tests (unit and integration): `PagueVeloz.Tests/`
+- Dev and test scripts: `scripts/` (includes `docker-helpers.sh`, `run-integration-tests.sh`, `run-e2e-tests.sh`)
+- Load tests (k6): `load-tests/k6/`
+- Challenge specification (requirements): `.github/.pdf/pagueveloz-challenge.pdf`
+
+---
+
+## Mandatory Requirements (from challenge)
+
+The following items are required for the submission and where to find them in this repository:
+
+1. Public git project with commit history — this repository (root).
+2. README with architecture & decisions, build/run instructions and examples — `README.md` and language-specific docs in `.github/.md/`.
+3. C# (.NET 9) implementation — see `PagueVeloz.*` projects (`PagueVeloz.API`, `PagueVeloz.Application`, `PagueVeloz.Domain`, `PagueVeloz.Infrastructure`).
+4. Unit and integration tests — `PagueVeloz.Tests/` (integration tests use Docker helpers).
+5. API documentation (OpenAPI/Swagger) — produced by `PagueVeloz.API` and available at `/openapi/v1.json` when the service runs.
+
+---
+
+## Desirable Differentials (optional)
+
+- Docker Compose setup for reproducing the environment — `docker-compose.yml` and `scripts/docker-helpers.sh`.
+- Performance metrics and load tests — `load-tests/k6/loadtest.js`.
+- Observability (structured logs, metrics) — logging added in `PagueVeloz.API` and services; consult `Program.cs` and `PagueVeloz.Application/Services`.
+- Cloud deployment or deployment scripts — optional; look for scripts/ or CI configs.
+- Advanced architectural patterns (CQRS, Event Sourcing) — not required but listed as differentials.
+
+---
+
+## Short Usage
+
+Run the API locally (recommended: use the included Docker helper for full stack):
 
 ```bash
-docker compose up -d --build
-```
+# Start infra (Postgres, Redis, RabbitMQ) and build images
+./scripts/docker-helpers.sh --build
 
-Access:
-
-- **API**: <http://localhost:9999>
-- **Swagger UI**: <http://localhost:9999/swagger/index.html>
-- **OpenAPI**: <http://localhost:9999/openapi/v1.json>
-- **RabbitMQ**: <http://localhost:15672>
-
-### Without Docker
-
-```bash
+# Run the API locally (no docker)
 dotnet run --project PagueVeloz.API
 ```
 
----
-
-## API Endpoints
-
-- `GET /health` — Health check
-- `POST /api/accounts` — Create account
-- `POST /api/transactions` — Process transaction
+For the full, step-by-step test flow please consult the language-specific READMEs:
+- English: `.github/.md/README.en.md`
+- Português: `.github/.md/README.pt-br.md`
 
 ---
 
-## Testing
-
-```bash
-# Unit tests
-dotnet test PagueVeloz.sln --filter "Category!=Integration" -v minimal
-
-# Integration tests
-WAIT_TIMEOUT=180 ./scripts/run-integration-tests.sh
-
-# End-to-end tests
-WAIT_TIMEOUT=180 ./scripts/run-e2e-tests.sh
-
-# Load tests
-k6 run load-tests/k6/loadtest.js
-```
+For full evaluation instructions and detailed test commands see the localized READMEs referenced above.
 
 ---
 
-## Key Design Decisions
+## Requirements mapping (where to find each item)
 
-- **Strong Consistency**: PostgreSQL is source of truth for financial state
-- **CAP Trade-off**: Prioritizes consistency over availability on writes
-- **No CQRS**: Intentionally kept simple for current product scope
-- **No Event Sourcing**: PostgreSQL transactional model is sufficient
-- **Fallback Infrastructure**: In-memory implementations when dependencies unavailable
+This section maps every requirement from the challenge spec (mandatory, desirable/differential and example scenarios) to the file(s) in this repository that implement or demonstrate it.
 
----
+### Mandatory requirements
 
-## Documentation
+- Public git project with commit history — repository root (confirm remote visibility on your Git provider).
+- README with architecture/decisions/build/run/tests/examples — [README.md](README.md) and localized docs: [.github/.md/README.en.md](.github/.md/README.en.md), [.github/.md/README.pt-br.md](.github/.md/README.pt-br.md).
+- C# (.NET 9) implementation — projects under solution: [PagueVeloz.sln](PagueVeloz.sln) referencing:
+	- [PagueVeloz.API/](PagueVeloz.API/)
+	- [PagueVeloz.Application/](PagueVeloz.Application/)
+	- [PagueVeloz.Domain/](PagueVeloz.Domain/)
+	- [PagueVeloz.Infrastructure/](PagueVeloz.Infrastructure/)
+	- Project target frameworks: each project file has `<TargetFramework>net9.0</TargetFramework>`.
+- Unit and integration tests — [PagueVeloz.Tests/](PagueVeloz.Tests/) (unit tests under [PagueVeloz.Tests/Application/](PagueVeloz.Tests/Application/); integration tests under [PagueVeloz.Tests/Integration/](PagueVeloz.Tests/Integration/)).
+	- Example test files: [PagueVeloz.Tests/Application/TransactionProcessorUnitTests.cs](PagueVeloz.Tests/Application/TransactionProcessorUnitTests.cs), [PagueVeloz.Tests/Integration/TransactionScenariosIntegrationTests.cs](PagueVeloz.Tests/Integration/TransactionScenariosIntegrationTests.cs).
+- API documentation (OpenAPI/Swagger) — produced by API startup: see [PagueVeloz.API/Program.cs](PagueVeloz.API/Program.cs) (OpenAPI available at `/openapi/v1.json`, Swagger UI at `/swagger/index.html`).
 
-Complete architecture and operational guides:
+### Desirable / Differentials (where present)
 
-- [Full Documentation (English)](./.md/README.en.md)
-- [Documentação Completa (Português)](./.md/README.pt-br.md)
+- Docker Compose and helper scripts — [docker-compose.yml](docker-compose.yml) and [scripts/docker-helpers.sh](scripts/docker-helpers.sh).
+- Load tests / performance — [load-tests/k6/loadtest.js](load-tests/k6/loadtest.js).
+- Structured logging and observability basics — console JSON logging configured in [PagueVeloz.API/Program.cs](PagueVeloz.API/Program.cs); structured logs added across services in [PagueVeloz.Application/Services/](PagueVeloz.Application/Services/) and [PagueVeloz.Infrastructure/].
+- Retries / backoff and circuit breaker for messaging — implemented in:
+	- Retry/backoff publisher: [PagueVeloz.Infrastructure/Messaging/RabbitMqEventPublisher.cs](PagueVeloz.Infrastructure/Messaging/RabbitMqEventPublisher.cs)
+	- Circuit breaker wrapper: [PagueVeloz.Infrastructure/Messaging/CircuitBreakerEventPublisher.cs](PagueVeloz.Infrastructure/Messaging/CircuitBreakerEventPublisher.cs)
+- Persistence with EF and transactional unit-of-work — [PagueVeloz.Infrastructure/Persistence/PagueVelozDbContext.cs](PagueVeloz.Infrastructure/Persistence/PagueVelozDbContext.cs), [EfUnitOfWork.cs](PagueVeloz.Infrastructure/Persistence/EfUnitOfWork.cs), [EfAccountRepository.cs](PagueVeloz.Infrastructure/Persistence/EfAccountRepository.cs).
 
----
+### Where idempotency, locking and concurrency are implemented
 
-## Development Workflow
+- Idempotency store implementations: [PagueVeloz.Infrastructure/InMemoryIdempotencyStore.cs](PagueVeloz.Infrastructure/InMemoryIdempotencyStore.cs) and [PagueVeloz.Infrastructure/Persistence/EfIdempotencyStore.cs](PagueVeloz.Infrastructure/Persistence/EfIdempotencyStore.cs).
+- Application usage (checks and saves idempotency): [PagueVeloz.Application/Services/TransactionProcessor.cs](PagueVeloz.Application/Services/TransactionProcessor.cs).
+- Account-level locking (in-memory provider): [PagueVeloz.Infrastructure/InMemoryAccountLockProvider.cs](PagueVeloz.Infrastructure/InMemoryAccountLockProvider.cs).
+- Advisory lock for DB initialization (prevents concurrent EnsureCreated attempts): [PagueVeloz.API/Program.cs](PagueVeloz.API/Program.cs) (uses pg_try_advisory_lock).
 
-1. Clone repository
-2. Run `docker compose up -d --build` or `dotnet run --project PagueVeloz.API`
-3. Access Swagger UI at <http://localhost:9999/swagger/index.html>
-4. Run tests: `dotnet test PagueVeloz.sln --filter "Category!=Integration"`
+### Example scenarios (from the challenge PDF) and where they are covered
+
+Case #1 — Basic credit and debit operations
+- Demonstrated in unit tests: [PagueVeloz.Tests/Application/TransactionProcessorUnitTests.cs](PagueVeloz.Tests/Application/TransactionProcessorUnitTests.cs) (tests: credit, debit, insufficient balance). 
+- Executed end-to-end in integration: [PagueVeloz.Tests/Integration/TransactionScenariosIntegrationTests.cs](PagueVeloz.Tests/Integration/TransactionScenariosIntegrationTests.cs).
+
+Case #2 — Operations with credit limit
+- Handled in domain logic and covered by unit tests: [PagueVeloz.Domain/AccountDomain.cs](PagueVeloz.Domain/AccountDomain.cs) and [PagueVeloz.Tests/Application/TransactionProcessorUnitTests.cs](PagueVeloz.Tests/Application/TransactionProcessorUnitTests.cs).
+
+Case #3 — Reserve and capture flow
+- Implemented in domain (`Reserve`, `Capture`) and covered by unit + integration tests: [PagueVeloz.Domain/AccountDomain.cs](PagueVeloz.Domain/AccountDomain.cs), [PagueVeloz.Tests/Application/TransactionProcessorUnitTests.cs](PagueVeloz.Tests/Application/TransactionProcessorUnitTests.cs), [PagueVeloz.Tests/Integration/TransactionScenariosIntegrationTests.cs](PagueVeloz.Tests/Integration/TransactionScenariosIntegrationTests.cs).
+
+Case #4 — Transfer between accounts
+- Implemented in application/domain: [PagueVeloz.Application/Services/TransactionProcessor.cs](PagueVeloz.Application/Services/TransactionProcessor.cs) and covered by tests in [PagueVeloz.Tests/](PagueVeloz.Tests/).
+
+Case #5 — Failures and retry (publish retry/backoff)
+- Retry/backoff for message publication: [PagueVeloz.Infrastructure/Messaging/RabbitMqEventPublisher.cs](PagueVeloz.Infrastructure/Messaging/RabbitMqEventPublisher.cs).
+- Circuit-breaker and fallback persistence: [PagueVeloz.Infrastructure/Messaging/CircuitBreakerEventPublisher.cs](PagueVeloz.Infrastructure/Messaging/CircuitBreakerEventPublisher.cs).
+- Integration test that exercises publisher: [PagueVeloz.Tests/Integration/RabbitMqPublisherIntegrationTests.cs](PagueVeloz.Tests/Integration/RabbitMqPublisherIntegrationTests.cs).
+
+### Additional important files
+
+- Docker orchestration and HAProxy: [docker-compose.yml](docker-compose.yml), [haproxy.cfg](haproxy.cfg).
+- Load tests and k6 scenario: [load-tests/k6/loadtest.js](load-tests/k6/loadtest.js).
+- Test orchestration scripts: [scripts/docker-helpers.sh](scripts/docker-helpers.sh), [scripts/run-integration-tests.sh](scripts/run-integration-tests.sh), [scripts/run-e2e-tests.sh](scripts/run-e2e-tests.sh).
+- Challenge specification PDF (source of the requirements): [.github/.pdf/pagueveloz-challenge.pdf](.github/.pdf/pagueveloz-challenge.pdf).
+
+If you want, I can now:
+
+1. Generate an explicit checklist in `README.md` with checkbox status for each mandatory item (useful for the evaluator).  
+2. Add coverage report generation (coverlet + ReportGenerator) and attach the HTML/summary.  
+3. Add a minimal OpenTelemetry metrics/tracing setup.
+
+Tell me which of the follow-ups you'd like and I will implement it next.
